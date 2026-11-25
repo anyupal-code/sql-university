@@ -71,3 +71,41 @@ sudo systemctl enable postgresql
 
 ## Ожидаемый результат
 Установлен PostgreSQL, создан пользователь `myuser` и база данных `mydb`. Выполнено подключение через DBeaver.
+
+---
+
+## Решение проблем при подключении (Troubleshooting)
+
+### Ошибка: «пользователь не прошел проверку подлинности (ident)»
+**Причина:** В Fedora по умолчанию для локальных подключений используется метод `ident`. Он требует, чтобы имя системного пользователя Linux совпадало с именем пользователя базы данных. DBeaver подключается по TCP (localhost), и сервер применяет это правило.
+
+**Решение (для Fedora/Linux):**
+1. Откройте файл конфигурации PostgreSQL:
+   ~~~bash
+   sudo nano /var/lib/pgsql/data/pg_hba.conf
+   ~~~
+2. Найдите строку, которая начинается с `host all all 127.0.0.1/32`. 
+3. Замените метод `ident` на `md5`. Должно получиться:
+   ~~~text
+   host    all             all             127.0.0.1/32            md5
+   ~~~
+4. Сохраните файл (`Ctrl+O`, `Enter`, `Ctrl+X`).
+5. Перезагрузите конфигурацию:
+   ~~~bash
+   sudo systemctl reload postgresql
+   ~~~
+6. В DBeaver нажмите **Test Connection** снова.
+
+### Ошибка: «password authentication failed» (неверный пароль)
+**Причина:** Пароль пользователя `myuser` был задан неверно или не был установлен.
+**Решение:**
+1. Войдите в консоль под суперпользователем:
+   ~~~bash
+   sudo -u postgres psql
+   ~~~
+2. Сбросьте пароль:
+   ~~~sql
+   ALTER USER myuser WITH PASSWORD 'mypassword';
+   ~~~
+3. Выйдите: `\q`.
+4. В DBeaver введите пароль `mypassword`.
